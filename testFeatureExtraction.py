@@ -28,7 +28,7 @@ if __name__ == '__main__':
 
     # Threshold of the distance
     threshold = 0.8
-
+    # Percentage of number of class to use
     trainFeatDataset = 0.2
 
 
