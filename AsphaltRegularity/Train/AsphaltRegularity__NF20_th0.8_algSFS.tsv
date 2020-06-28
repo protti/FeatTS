@@ -1,0 +1,8 @@
+Threshold: 	0.8
+Algoritmo Usato:	 Greedy Modularity 
+Time Community Detection: 	23.793270587921143
+Time Computation Matrix: 	15.642815589904785
+Feature 0: 	value__change_quantiles__f_agg_"var"__isabs_False__qh_1.0__ql_0.4
+Feature 1: 	value__quantile__q_0.3
+Feature 2: 	value__absolute_sum_of_changes
+Feature 3: 	value__spkt_welch_density__coeff_5
