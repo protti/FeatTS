@@ -269,8 +269,8 @@ if __name__ == '__main__':
     result = pandas.read_csv(
         "./" + nameDataset + "/SFS/KVal_" + str(clusterK) + "/SingleIterationInfo/SummaryResults.csv")
     print(type(result))
-    ax = plt.gca()
-    result.plot(kind='line', x='Feature', y='AMI', ax=ax)
+    # ax = plt.gca()
+    # result.plot(kind='line', x='Feature', y='AMI', ax=ax)
     globalOpt, localOpt = util.calcLocalGen(result["AMI"])
     globalRI, localRI = util.calcLocalGen(result["RandIndex"])
     print("Local Optimum: " + str(localOpt))
