@@ -353,11 +353,11 @@ def getCommunityDetectionTrain(feature,features_filtered_direct,listOfId,thresho
     if os.path.isdir("./" + nameDataset + "/" + algorithmFeat+"/KVal_"+str(clusterK) + "/CommunityDetection") == False:
         os.mkdir("./" + nameDataset + "/" + algorithmFeat+"/KVal_"+str(clusterK) + "/CommunityDetection")
 
-    if os.path.isfile("./" + nameDataset + "/" + algorithmFeat+"/KVal_"+str(clusterK) + "/CommunityDetection/TrainListOfComm.pkl") == False:
-        with open("./" + nameDataset + "/" + algorithmFeat+"/KVal_"+str(clusterK) + "/CommunityDetection/TrainListOfComm.pkl", 'wb') as f:
+    if os.path.isfile("./" + nameDataset + "/" + algorithmFeat+"/KVal_"+str(clusterK) + "/CommunityDetection/TrainListOfComm"+str(threshold)+".pkl") == False:
+        with open("./" + nameDataset + "/" + algorithmFeat+"/KVal_"+str(clusterK) + "/CommunityDetection/TrainListOfComm"+str(threshold)+".pkl", 'wb') as f:
             pickle.dump(listOfDictInfoFeat, f)
 
-    with open("./" + nameDataset + "/" + algorithmFeat+"/KVal_"+str(clusterK) + "/CommunityDetection/TrainListOfComm.pkl", 'rb') as f:
+    with open("./" + nameDataset + "/" + algorithmFeat+"/KVal_"+str(clusterK) + "/CommunityDetection/TrainListOfComm"+str(threshold)+".pkl", 'rb') as f:
         listOfDictInfoFeat = pickle.load(f)
 
     if not feature in listOfDictInfoFeat.keys():
@@ -396,7 +396,7 @@ def getCommunityDetectionTrain(feature,features_filtered_direct,listOfId,thresho
         except Exception as e:
             print(e)
             pass
-        with open("./" + nameDataset + "/" + algorithmFeat+"/KVal_"+str(clusterK) + "/CommunityDetection/TrainListOfComm.pkl", 'wb') as f:
+        with open("./" + nameDataset + "/" + algorithmFeat+"/KVal_"+str(clusterK) + "/CommunityDetection/TrainListOfComm"+str(threshold)+".pkl", 'wb') as f:
             listOfDictInfoFeat[feature] = dictOfInfo
             pickle.dump(listOfDictInfoFeat, f)
             f.close()
