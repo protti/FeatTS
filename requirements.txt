@@ -108,7 +108,6 @@ pyparsing==2.4.0
 pyrsistent==0.15.7
 pytest==5.4.1
 python-dateutil==2.8.0
-pywin32==227
 pywinpty==0.5.7
 PyYAML==5.1.2
 pyzmq==18.1.1
