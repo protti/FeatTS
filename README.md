@@ -1,4 +1,4 @@
-# cEnsemble
+# FeatTS
 
 ## Running 
 
