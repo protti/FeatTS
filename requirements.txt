@@ -102,7 +102,7 @@ pyclustering==0.9.2
 pycodestyle==2.6.0
 pycparser==2.20
 pydub==0.23.1
-Pygments==2.5.2
+Pygments==2.7.4
 pylint==2.6.0
 pyparsing==2.4.0
 pyrsistent==0.15.7
