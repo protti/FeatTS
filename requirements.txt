@@ -119,7 +119,7 @@ requests==2.21.0
 requests-oauthlib==1.3.0
 resampy==0.2.1
 rpy2==3.3.2
-rsa==4.6
+rsa==4.7
 scikit-learn==0.20.3
 scipy==1.4.1
 selenium==3.141.0
