@@ -102,7 +102,10 @@ def extractFeature(listOut, series,listOfClass,trainFeatDataset,features_filtere
 
     allAcc,allNotAcc = getDataframeAcc(series,trainFeatDataset)
     filtreFeat,seriesAcc = getSubSetFeatures(features_filtered_direct,allAcc,allNotAcc,listOfClass)
-    filtreFeat = filtreFeat.drop('id',axis='columns')
+    if 'id' in filtreFeat.keys():
+        filtreFeat = filtreFeat.drop('id',axis='columns')
+    else:
+        filtreFeat = filtreFeat.drop('index',axis='columns')
     return filtreFeat,seriesAcc,features_filtered_direct
 
 
