@@ -3,23 +3,11 @@
 ## Running 
 
 In the `testFeatureExtraction.py` we can found the main file where we can set the parameter for launch the code. 
+The dataset used for the test should be inside the _DatasetTS_ folder. Inside this folder, you have to create
+a folder with the same name of the dataset.
 
-They could be found from the **23** to **32** rows.
+At the end of the computation, a file called **experiments.tsv** will contain all the results obained on the datasets.
 
-
-```python
-    # Choice of the number of clusters k
-    clusterK = 2
-    
-    # Name of the dataset
-    nameDataset = "ECG200"
-
-    # Threshold of the distance
-    threshold = 0.8
-    
-    # Percentage of number of class to use
-    trainFeatDataset = 0.2
-```
 
 ## Configuration File
 
@@ -27,7 +15,7 @@ For test some other dataset it's very important to create a *.tsv* file where th
 and then all the points of the latter:
 <table>
   <tr>
-    <th>Classe</th>
+    <th>Class</th>
     <th>1</th>
     <th>2</th>
     <th>3</th>
@@ -75,10 +63,3 @@ and then all the points of the latter:
     <td>...</td>
   </tr> 
 </table>
-
-The `.tsv` should have the same name of the folder where it is contained, so if for example the name is `dataset.tsv` it should be in
-the folder named `dataset`. And for test the code just put `dataset` in line **27** in this way:
-```python
-# Name of the dataset
-nameDataset = ["dataset"]
-```
