@@ -36,7 +36,6 @@ def adaptTimeSeries(path):
 
         for row in reader:
             listValueApp = []
-            # print(row)
             splitted = row[0].split('\t')
 
             if "AsphaltObstacles" in path or "AsphaltRegularity" in path:
@@ -65,8 +64,6 @@ def getDataframeAcc(appSeries,perc):
     series = appSeries
     dictIndexAcc = {}
     dictIndexNotAcc = {}
-    print(listClassExtr)
-    # print(series)
     allAccInd = []
     allNotAccInd = []
     for x in listClassExtr:
@@ -124,7 +121,7 @@ def getMedianDistance(threshold,listOfValue):
     except Exception as e:
         print(e)
     if listOfDistance[int(len(listOfDistance) * threshold)] == 0:
-        print("Tutti i valori sono uguali")
+        print("All the values are equals")
     return listOfDistance[int(len(listOfDistance) * threshold)]
 
 
@@ -138,11 +135,11 @@ def getMedianDistanceDTW(threshold,listOfValue,matrixDistanceLoad = []):
         else:
             listOfDistance,matrixDistance = calculationDistDTW(listOfValue,matrixDistanceLoad)
         listOfDistance.sort(reverse=False)
-        print(listOfDistance)
+
     except Exception as e:
         print(e)
     if listOfDistance[int(len(listOfDistance) * threshold)] == 0:
-        print("Tutti i valori sono uguali")
+        print("All the values are equals")
     if len(matrixDistanceLoad) != 0:
         return listOfDistance[int(len(listOfDistance) * threshold)], matrixDistanceLoad
     else:
@@ -156,7 +153,6 @@ def calculationDistDTW(listOfValue,matrixDistanceLoaded = []):
         matrixDistanceLoaded = [[0 for x in range(w)] for y in range(w)]
 
         def matrixCalcParal(result):
-            # print(len(result))
             for val in result:
                 matrixDistanceLoaded[val["i"]][val["j"]] = val["value"]
 
@@ -178,21 +174,16 @@ def calculationDistDTW(listOfValue,matrixDistanceLoaded = []):
         pool.join()
 
     listDist = []
-    for x in matrixDistanceLoaded:
-        print(x)
     for i in range(0, len(listOfValue)):
         for j in range(i + 1, len(listOfValue)):
             listDist.append(matrixDistanceLoaded[i][j])
-    print(listDist)
     return listDist,matrixDistanceLoaded
 
 
 def calcValueDTW(indAna,start, listOfValue, totRig):
     dictOfValueIJ = []
-    print(indAna,start,totRig)
     for val in range(start,start+totRig):
         value = fastdtw(listOfValue[0], listOfValue[val], dist=euclidean)[0]
-        # print(value)
         dictSingle = {"value": value,
                       "i": indAna, "j": val+indAna}
         dictOfValueIJ.append(dictSingle)
@@ -207,7 +198,6 @@ def getTabNonSym(setCluster,listId):
 
 
     def matrixCalcParal(result):
-        # print(len(result))
         for val in result:
             matrixSym[val["i"]][val["j"]] = val["value"]
 
@@ -224,7 +214,6 @@ def getTabNonSym(setCluster,listId):
 
     pool.close()
     pool.join()
-    print("Lunghezza" + str(len(matrixSym)))
     for i in range(len(matrixSym)):
         maxVal = max(matrixSym[i])
         for j in range(len(matrixSym)):
@@ -281,14 +270,12 @@ def getCluster(matrixsym,setCluster,numClust):
     for i in range(0, len(Cl)):
         dictApp = {i: Cl[i]}
         dictClu.update(dictApp)
-    print(dictClu)
 
 
     listOfCommFind = []
 
     for label in dictClu:
         for point_idx in dictClu[label]:
-            # print('label {0}: {1}'.format(label, list(setCluster)[point_idx]))
             dictSing = {"label": label, "cluster": list(setCluster)[point_idx]}
             listOfCommFind.append(dictSing)
     return listOfCommFind
@@ -342,9 +329,8 @@ def randomFeat(ris,numberFeatUse):
     indexNames = ris[ris['relevant'] == True].index
 
     ris.drop(indexNames, inplace=True)
-    print(ris)
     randomFeat = ris.sample(n=numberFeatUse)
-    print(randomFeat["p_value"])
+
 
     return randomFeat
 
@@ -353,14 +339,14 @@ def randomFeat(ris,numberFeatUse):
 def getCommunityDetectionTrain(feature,features_filtered_direct,listOfId,threshold,clusterK,chooseAlgorithm,trainKClique, nameDataset, algorithmFeat):
 
     listOfDictInfoFeat = {}
-    if os.path.isdir("./" + nameDataset + "/" + algorithmFeat+"/KVal_"+str(clusterK) + "/CommunityDetection") == False:
-        os.mkdir("./" + nameDataset + "/" + algorithmFeat+"/KVal_"+str(clusterK) + "/CommunityDetection")
+    if os.path.isdir("./DatasetTS/" + nameDataset + "/" + algorithmFeat+"/KVal_"+str(clusterK) + "/CommunityDetection") == False:
+        os.mkdir("./DatasetTS/" + nameDataset + "/" + algorithmFeat+"/KVal_"+str(clusterK) + "/CommunityDetection")
 
-    if os.path.isfile("./" + nameDataset + "/" + algorithmFeat+"/KVal_"+str(clusterK) + "/CommunityDetection/TrainListOfComm"+str(threshold)+".pkl") == False:
-        with open("./" + nameDataset + "/" + algorithmFeat+"/KVal_"+str(clusterK) + "/CommunityDetection/TrainListOfComm"+str(threshold)+".pkl", 'wb') as f:
+    if os.path.isfile("./DatasetTS/" + nameDataset + "/" + algorithmFeat+"/KVal_"+str(clusterK) + "/CommunityDetection/TrainListOfComm"+str(threshold)+".pkl") == False:
+        with open("./DatasetTS/" + nameDataset + "/" + algorithmFeat+"/KVal_"+str(clusterK) + "/CommunityDetection/TrainListOfComm"+str(threshold)+".pkl", 'wb') as f:
             pickle.dump(listOfDictInfoFeat, f)
 
-    with open("./" + nameDataset + "/" + algorithmFeat+"/KVal_"+str(clusterK) + "/CommunityDetection/TrainListOfComm"+str(threshold)+".pkl", 'rb') as f:
+    with open("./DatasetTS/" + nameDataset + "/" + algorithmFeat+"/KVal_"+str(clusterK) + "/CommunityDetection/TrainListOfComm"+str(threshold)+".pkl", 'rb') as f:
         listOfDictInfoFeat = pickle.load(f)
 
     if not feature in listOfDictInfoFeat.keys():
@@ -399,7 +385,7 @@ def getCommunityDetectionTrain(feature,features_filtered_direct,listOfId,thresho
         except Exception as e:
             print(e)
             pass
-        with open("./" + nameDataset + "/" + algorithmFeat+"/KVal_"+str(clusterK) + "/CommunityDetection/TrainListOfComm"+str(threshold)+".pkl", 'wb') as f:
+        with open("./DatasetTS/" + nameDataset + "/" + algorithmFeat+"/KVal_"+str(clusterK) + "/CommunityDetection/TrainListOfComm"+str(threshold)+".pkl", 'wb') as f:
             listOfDictInfoFeat[feature] = dictOfInfo
             pickle.dump(listOfDictInfoFeat, f)
             f.close()
@@ -428,18 +414,17 @@ def getCommunityDetectionDTW(listForDTW,threshold,clusterK,chooseAlgorithm,train
     H = nx.path_graph(listOfId)
     G.add_nodes_from(H)
 
-    if os.path.isfile("./" +nameDataset +"/Train/distanceDTW") !=  True:
+    if os.path.isfile("./DatasetTS/" +nameDataset +"/Train/distanceDTW") !=  True:
         distanceMinAccept,matrixDistance = getMedianDistanceDTW(threshold, listForDTW)
-        pickle_out = open("./" +nameDataset +"/Train/distanceDTW", "wb")
+        pickle_out = open("./DatasetTS/" +nameDataset +"/Train/distanceDTW", "wb")
 
         pickle.dump(matrixDistance, pickle_out)
         pickle_out.close()
     else:
-        pickle_in = open("./" +nameDataset +"/Train/distanceDTW", "rb")
+        pickle_in = open("./DatasetTS/" +nameDataset +"/Train/distanceDTW", "rb")
         matrixDistance = pickle.load(pickle_in)
         distanceMinAccept, matrixDistance = getMedianDistanceDTW(threshold, listForDTW,matrixDistance)
 
-    print(distanceMinAccept)
     for i in range(0, len(listOfId)):
         for j in range(i + 1, len(listOfId)):
             if matrixDistance[i][j] < distanceMinAccept:

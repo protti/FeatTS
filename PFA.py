@@ -20,9 +20,8 @@ class PFA(object):
         pca = PCA(0.9)
         pca.fit(X_trans)
         princComp = len(pca.explained_variance_ratio_)
-        print(np.cumsum(pca.explained_variance_ratio_))
         A_q = pca.components_.T
-        print(len(A_q))
+
 
         kmeans = KMeans(n_clusters=princComp).fit(A_q)
         clusters = kmeans.predict(A_q)
@@ -39,5 +38,5 @@ class PFA(object):
         for x in self.indices_:
             listFeat.append(X.columns[x])
 
-        print(listFeat)
+        print("Features Selected: " + str(listFeat))
         return listFeat
