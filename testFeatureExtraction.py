@@ -1,5 +1,3 @@
-import matplotlib.pyplot as plt
-import pandas
 from sklearn.metrics import adjusted_mutual_info_score, adjusted_rand_score
 from tsfresh import feature_selection
 import utilFeatExtr as util
