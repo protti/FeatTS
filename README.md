@@ -2,6 +2,8 @@
 
 ## Running 
 
+python_version > '3.7' 
+
 In the `testFeatureExtraction.py` we can found the main file where we can set the parameter for launch the code. 
 The dataset used for the test should be inside the _DatasetTS_ folder. Inside this folder, you have to create
 a folder with the same name of the dataset.
