@@ -1,5 +1,9 @@
 # FeatTS
 
+## Paper
+
+At this link you can find the paper related at this code: http://openproceedings.org/2021/conf/edbt/p270.pdf
+
 ## Running 
 
 python_version > '3.7' 
