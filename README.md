@@ -69,3 +69,5 @@ and then all the points of the latter:
     <td>...</td>
   </tr> 
 </table>
+
+There is also the possibility to use the .arff files of the [UCR Time Series Dataset](https://www.timeseriesclassification.com/dataset.php). Indeed, adding the TRAIN and the TEST files, as shown in the DatasetTS folder, FeatTS automatically generate the .tsv file. 
