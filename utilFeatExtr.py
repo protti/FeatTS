@@ -61,11 +61,6 @@ def adaptTimeSeries(path):
         for row in reader:
             listValueApp = []
             splitted = row[0].split('\t')
-
-            if "AsphaltObstacles" in path or "AsphaltRegularity" in path:
-                splitClass = len(splitted) - 1
-                startPoint = 0
-
             listOfClass.append(splitted[splitClass])
             for i in range(startPoint,len(splitted)):
                 if splitted[i] != "NaN":
