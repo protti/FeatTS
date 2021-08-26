@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from fastdtw import fastdtw
 from scipy.spatial.distance import euclidean
+from scipy.io import arff
 from sklearn.metrics.pairwise import pairwise_distances
 from pyclustering.cluster.kmedoids import kmedoids
 from scipy.special import comb
@@ -17,6 +18,29 @@ import SLPA
 import utilityUCR as util
 matrixSym = []
 
+
+
+def mergeArffFiles(dataset):
+    dataTrain = arff.loadarff("./DatasetTS/" +dataset + "\\" + dataset + '_TRAIN.arff')
+    dataTest = arff.loadarff("./DatasetTS/" +dataset + "\\" +dataset +'_TEST.arff')
+    dfTrain = pd.DataFrame(dataTrain[0])
+    dfTest = pd.DataFrame(dataTest[0])
+    frames = [dfTrain, dfTest]
+    df = pd.concat(frames)
+    tsvConverter(dataset,df)
+
+def tsvConverter(dataset,df):
+    with open("./DatasetTS/" + dataset + "\\" + dataset+'.tsv','wt',newline='') as out_file:
+        tsv_writer = csv.writer(out_file, delimiter='\t')
+        for idx in range(0, len(df.index)):
+            timeSer = df.iloc[idx]
+            classTS = int(str(timeSer['target'],'utf-8'))
+            listOfValues = []
+            listOfValues.append(classTS)
+            for key in df.keys():
+                if 'att' in key:
+                    listOfValues.append(float(timeSer[key]))
+            tsv_writer.writerow(listOfValues)
 
 
 

@@ -1,4 +1,4 @@
-from sklearn.metrics import adjusted_mutual_info_score, adjusted_rand_score
+from sklearn.metrics import adjusted_mutual_info_score, adjusted_rand_score, normalized_mutual_info_score
 from tsfresh import feature_selection
 import utilFeatExtr as util
 import pandas as pd
@@ -21,6 +21,8 @@ if __name__ == '__main__':
     dictOfLength = {}
     for dataset in listOfEntireDataset:
         testPath = "./DatasetTS/" + dataset + "/" + dataset + ".tsv"
+        if not os.path.isfile(testPath):
+            util.mergeArffFiles(dataset)
         with open(testPath, 'r+') as file:
             lines = file.readlines()
             dictOfLength[dataset] = len(lines)
@@ -30,7 +32,7 @@ if __name__ == '__main__':
 
     with open('experiments.csv', 'a+', newline='') as csvfile:
         filesize = os.path.getsize("experiments.csv")
-        fieldnames = ['nameDataset', 'AMI', 'ARI', 'RI']
+        fieldnames = ['nameDataset', 'AMI','NMI', 'ARI', 'RI']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         if len(listOfEntireDataset) == len(os.listdir("./DatasetTS/")) and filesize == 0:
             writer.writeheader()
@@ -211,17 +213,20 @@ if __name__ == '__main__':
         amiValue = adjusted_mutual_info_score([int(i) for i in list(series)], listOfProva)
         randIndex = util.rand_index_score([int(i) for i in list(series)], listOfProva)
         adjRandInd = adjusted_rand_score([int(i) for i in list(series)], listOfProva)
-
+        normMutualInfo = normalized_mutual_info_score([int(i) for i in list(series)], listOfProva)
         # Calculation of AMI and Rand Index
         print("Final Results:")
         print("AMI: " + str(amiValue))
         print("Rand Index: " + str(randIndex))
         print("Adjusted Rand Index: " + str(adjRandInd))
+        print("Norm. Mut. Inf: " + str(normMutualInfo))
 
         with open('experiments.csv', 'a+', newline='') as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writerow(
-                {'nameDataset': dataset, 'AMI': float(amiValue),
+                {'nameDataset': dataset,
+                 'AMI': float(amiValue),
+                 'NMI': float(normMutualInfo),
                  'ARI': float(adjRandInd),
                  'RI': float(randIndex)})
             csvfile.close()
