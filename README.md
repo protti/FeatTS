@@ -1,6 +1,12 @@
 # FeatTS
 
+## Paper
+
+At this link you can find the paper related at this code: http://openproceedings.org/2021/conf/edbt/p270.pdf
+
 ## Running 
+
+python_version > '3.7' 
 
 In the `testFeatureExtraction.py` we can found the main file where we can set the parameter for launch the code. 
 The dataset used for the test should be inside the _DatasetTS_ folder. Inside this folder, you have to create
