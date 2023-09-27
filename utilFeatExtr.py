@@ -1,5 +1,7 @@
 import csv
 import os
+import random
+
 import pandas as pd
 import numpy as np
 from fastdtw import fastdtw
@@ -53,7 +55,6 @@ def adaptTimeSeries(path):
         listOfTime = []
         listOfClass = []
         listGeneric = []
-        listForDTW = []
         startPoint = 1
         splitClass = 0
 
@@ -69,20 +70,61 @@ def adaptTimeSeries(path):
                     listOfTime.append(i)
                     listOfId.append(id)
                     listGeneric.append((id,i,(float(splitted[i]))))
-            listForDTW.append(listValueApp)
             id += 1
 
         df = pd.DataFrame(listGeneric, columns=['id', 'time','value'])
         series = pd.Series((i for i in listOfClass))
 
+        return df,series,listOfClass
 
-        return df,series,listOfClass,listForDTW
+def adaptTimeSeriesUCR(input_data):
+    # Initialize empty lists to store the data
+    id_list = []
+    time_list = []
+    value_list = []
+
+    # Loop through the input data
+    for i, sublist in enumerate(input_data):
+        for j, value in enumerate(sublist):
+            id_list.append(i)
+            time_list.append(j + 1)  # Adding 1 to start time from 1
+            value_list.append(value)
+
+    # Create a DataFrame
+    data = {'id': id_list, 'time': time_list, 'value': value_list}
+    df = pd.DataFrame(data)
+    return df
+
+
+def choose_and_exclude_indices_by_percentage(classes, percentage):
+    # Create a dictionary to store the chosen indices for each class
+    class_indices = {}
+
+    # Loop through the classes and assign indices
+    for i, class_val in enumerate(classes):
+        if class_val not in class_indices:
+            class_indices[class_val] = []
+        class_indices[class_val].append(i)
+
+    # Determine the number of indices to choose for each class based on the percentage
+    chosen_indices = []
+    excluded_indices = []
+    for class_val, indices in class_indices.items():
+        num_indices_to_choose = int(len(indices) * percentage)
+        random.shuffle(indices)
+        chosen_indices.extend(indices[:num_indices_to_choose])
+        excluded_indices.extend(indices[num_indices_to_choose:])
+
+    # Sort the chosen and excluded indices
+    chosen_indices.sort()
+    excluded_indices.sort()
+
+    return chosen_indices, excluded_indices
+
 
 def getDataframeAcc(appSeries,perc):
     listClassExtr = list(appSeries.drop_duplicates())
     series = appSeries
-    dictIndexAcc = {}
-    dictIndexNotAcc = {}
     allAccInd = []
     allNotAccInd = []
     for x in listClassExtr:
@@ -115,8 +157,8 @@ def extractFeature(listOut, series,listOfClass,trainFeatDataset,features_filtere
         features_filtered_direct = extract_features(listOut, column_id='id', column_sort='time')
         features_filtered_direct = features_filtered_direct.dropna(axis='columns')
 
-
-    allAcc,allNotAcc = getDataframeAcc(series,trainFeatDataset)
+    allAcc,allNotAcc = choose_and_exclude_indices_by_percentage(listOfClass, trainFeatDataset)
+    # allAcc,allNotAcc = getDataframeAcc(series,trainFeatDataset)
     filtreFeat,seriesAcc = getSubSetFeatures(features_filtered_direct,allAcc,allNotAcc,listOfClass)
     if 'id' in filtreFeat.keys():
         filtreFeat = filtreFeat.drop('id',axis='columns')
@@ -210,17 +252,11 @@ def calcValueDTW(indAna,start, listOfValue, totRig):
     return dictOfValueIJ
 
 def getTabNonSym(setCluster,listId):
-
-
     w = len(listId)
     matrixSym = [[0 for x in range(w)] for y in range(w)]
-
-
     def matrixCalcParal(result):
         for val in result:
             matrixSym[val["i"]][val["j"]] = val["value"]
-
-
 
     pool = mp.Pool(mp.cpu_count())
     totRig = int(len(listId)/mp.cpu_count())
@@ -354,62 +390,38 @@ def randomFeat(ris,numberFeatUse):
     return randomFeat
 
 
+def getCommunityDetectionTrain(feature, features_filtered_direct, listOfId, threshold, clusterK, chooseAlgorithm):
 
-def getCommunityDetectionTrain(feature,features_filtered_direct,listOfId,threshold,clusterK,chooseAlgorithm,trainKClique, nameDataset, algorithmFeat):
+    dictOfInfo = {}
+    G = nx.Graph()
+    H = nx.path_graph(listOfId)
+    G.add_nodes_from(H)
+    distanceMinAccept = getMedianDistance(threshold, features_filtered_direct[feature])
 
-    listOfDictInfoFeat = {}
-    if os.path.isdir("./DatasetTS/" + nameDataset + "/" + algorithmFeat+"/KVal_"+str(clusterK) + "/CommunityDetection") == False:
-        os.mkdir("./DatasetTS/" + nameDataset + "/" + algorithmFeat+"/KVal_"+str(clusterK) + "/CommunityDetection")
+    for i in range(0, len(listOfId)):
+        for j in range(i + 1, len(listOfId)):
+            if abs(features_filtered_direct[feature][i] - features_filtered_direct[feature][j]) < distanceMinAccept:
+                G.add_edge(i, j)
 
-    if os.path.isfile("./DatasetTS/" + nameDataset + "/" + algorithmFeat+"/KVal_"+str(clusterK) + "/CommunityDetection/TrainListOfComm"+str(threshold)+".pkl") == False:
-        with open("./DatasetTS/" + nameDataset + "/" + algorithmFeat+"/KVal_"+str(clusterK) + "/CommunityDetection/TrainListOfComm"+str(threshold)+".pkl", 'wb') as f:
-            pickle.dump(listOfDictInfoFeat, f)
+    try:
+        if list(chooseAlgorithm.keys())[0] == 'SLPA':
+            extrC = SLPA.find_communities(G, chooseAlgorithm['SLPA']['iteration'], chooseAlgorithm['SLPA']['radious'])
+            coms = []
+            for val in extrC:
+                coms.append(frozenset(extrC[val]))
+        elif list(chooseAlgorithm.keys())[0] == 'kClique':
+            coms = list(nx.algorithms.community.k_clique_communities(G, chooseAlgorithm['SLPA']['trainClique']))
+        else:
+            coms = list(nx.algorithms.community.greedy_modularity_communities(G))
 
-    with open("./DatasetTS/" + nameDataset + "/" + algorithmFeat+"/KVal_"+str(clusterK) + "/CommunityDetection/TrainListOfComm"+str(threshold)+".pkl", 'rb') as f:
-        listOfDictInfoFeat = pickle.load(f)
+        if len(coms) > clusterK:
+            dictOfInfo[feature] = {"distance": distanceMinAccept, "cluster": coms, "weightFeat": clusterK / len(coms)}
+        else:
+            dictOfInfo[feature] = {"distance": distanceMinAccept, "cluster": coms, "weightFeat": len(coms) / clusterK}
 
-    if not feature in listOfDictInfoFeat.keys():
-        dictOfInfo = {}
-        G = nx.Graph()
-        H = nx.path_graph(listOfId)
-        G.add_nodes_from(H)
-        distanceMinAccept = getMedianDistance(threshold, features_filtered_direct[feature])
-
-        for i in range(0, len(listOfId)):
-            for j in range(i + 1, len(listOfId)):
-                if abs(features_filtered_direct[feature][i] - features_filtered_direct[feature][j]) < distanceMinAccept:
-                    G.add_edge(i, j)
-
-        try:
-
-            if chooseAlgorithm == 0:
-                coms = list(nx.algorithms.community.greedy_modularity_communities(G))
-            elif chooseAlgorithm == 1:
-                coms = list(nx.algorithms.community.k_clique_communities(G,trainKClique))
-            else:
-                extrC = SLPA.find_communities(G, 20, 0.01)
-                coms = []
-                for val in extrC:
-                    coms.append(frozenset(extrC[val]))
-
-            for value in coms:
-                if len(coms) > clusterK:
-                    dictOfInfo[feature] = {"distance": distanceMinAccept, "cluster": coms,
-                                         "weightFeat": clusterK / len(coms)}
-                else:
-                    dictOfInfo[feature] = {"distance": distanceMinAccept, "cluster": coms,
-                                         "weightFeat":  len(coms)/clusterK}
-
-
-        except Exception as e:
-            print(e)
-            pass
-        with open("./DatasetTS/" + nameDataset + "/" + algorithmFeat+"/KVal_"+str(clusterK) + "/CommunityDetection/TrainListOfComm"+str(threshold)+".pkl", 'wb') as f:
-            listOfDictInfoFeat[feature] = dictOfInfo
-            pickle.dump(listOfDictInfoFeat, f)
-            f.close()
-    else:
-        dictOfInfo = listOfDictInfoFeat[feature]
+    except Exception as e:
+        print(e)
+        pass
 
     return dictOfInfo
 

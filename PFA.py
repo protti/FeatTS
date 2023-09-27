@@ -38,5 +38,5 @@ class PFA(object):
         for x in self.indices_:
             listFeat.append(X.columns[x])
 
-        print("Features Selected: " + str(listFeat))
+        # print("Features Selected: " + str(listFeat))
         return listFeat
