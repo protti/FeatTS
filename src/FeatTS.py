@@ -1,12 +1,10 @@
 from sklearn.metrics import adjusted_mutual_info_score, adjusted_rand_score, normalized_mutual_info_score
 from tsfresh import feature_selection
-import utilFeatExtr as util
+import src.utilFeatExtr as util
 import pandas as pd
 import os
 import multiprocessing as mp
-import time
-from PFA import PFA
-import csv
+from src.PFA import PFA
 from pyts import datasets
 
 def preprocess_data(nameDataset, UCR=False):
@@ -156,18 +154,13 @@ def cluster_evaluation(matrixNsym, datasetAdapted):
         normMutualInfo = normalized_mutual_info_score([int(i) for i in list(series)], listOfProva)
         return amiValue, normMutualInfo, randIndex, adjRandInd
 
-def FeatTS(nameDataset):
+def FeatTS(nameDataset, ucrDataset=False):
     print('FeatTS on going..')
-    datasetAdapted = preprocess_data(nameDataset, True)
+    datasetAdapted = preprocess_data(nameDataset, ucrDataset)
     featPFA, features_filtered_direct = features_extraction_selection(nameDataset, datasetAdapted)
     matrixNsym = community_and_matrix_creation(featPFA, datasetAdapted, features_filtered_direct)
     amiValue, normMutualInfo, randIndex, adjRandInd = cluster_evaluation(matrixNsym, datasetAdapted)
     return amiValue, normMutualInfo, randIndex, adjRandInd
-
-if __name__ == '__main__':
-    listDataset = ['Coffee']
-    for nameDataset in listDataset:
-        print(FeatTS(nameDataset))
 
 
 

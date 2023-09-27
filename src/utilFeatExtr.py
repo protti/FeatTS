@@ -16,8 +16,8 @@ import multiprocessing as mp
 
 from tsfresh import extract_features
 
-import SLPA
-import utilityUCR as util
+from src import SLPA
+from src import utilityUCR as util
 matrixSym = []
 
 
