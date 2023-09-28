@@ -7,7 +7,9 @@ import numpy as np
 from fastdtw import fastdtw
 from scipy.spatial.distance import euclidean
 from scipy.io import arff
+from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import pairwise_distances
+from sklearn.preprocessing import MinMaxScaler
 from pyclustering.cluster.kmedoids import kmedoids
 from scipy.special import comb
 import pickle
@@ -151,11 +153,11 @@ def getSubSetFeatures(df,allAccInd,allNotAccInd,listOfClass):
     return df,seriesAcc
 
 
-def extractFeature(listOut, series,listOfClass,trainFeatDataset,features_filtered_direct = None):
+def extractFeature(listOut, listOfClass,trainFeatDataset,features_filtered_direct = None):
 
     if features_filtered_direct is None:
         features_filtered_direct = extract_features(listOut, column_id='id', column_sort='time')
-        features_filtered_direct = features_filtered_direct.dropna(axis='columns')
+        features_filtered_direct = normalization_data(features_filtered_direct)
 
     allAcc,allNotAcc = choose_and_exclude_indices_by_percentage(listOfClass, trainFeatDataset)
     # allAcc,allNotAcc = getDataframeAcc(series,trainFeatDataset)
@@ -167,13 +169,36 @@ def extractFeature(listOut, series,listOfClass,trainFeatDataset,features_filtere
     return filtreFeat,seriesAcc,features_filtered_direct
 
 
+def normalization_data(features_filtered_direct):
+    features_filtered_direct = features_filtered_direct.dropna(axis='columns')
+    # Initialize the MinMaxScaler
+    scaler = MinMaxScaler()
+    # Fit and transform the DataFrame using the scaler
+    normalized_data = scaler.fit_transform(features_filtered_direct)
+    # Create a new DataFrame with the normalized data
+    features_filtered_direct = pd.DataFrame(normalized_data, columns=features_filtered_direct.columns)
+    # Calculate variance for each column
+    variance = features_filtered_direct.var()
+
+    # Sort the Series based on values
+    sorted_data = variance.sort_values()
+
+    # Reshape the sorted Series into a 2D array
+    X = sorted_data.values.reshape(-1, 1)
+
+    # Perform K-Means clustering with k=2
+    kmeans = KMeans(n_clusters=2)
+    kmeans.fit(X)
+    variance_useless_column = variance[:(list(kmeans.labels_).count(0)-1)].index
+    features_filtered_direct.drop(columns=variance_useless_column, inplace=True)
 
 
+    return features_filtered_direct
 
 
 def getMedianDistance(threshold,listOfValue):
+    listOfDistance = []
     try:
-        listOfDistance = []
         for i in range(0,len(listOfValue)):
             for j in range(i + 1, len(listOfValue)):
                 listOfDistance.append(abs(listOfValue[i] - listOfValue[j]))

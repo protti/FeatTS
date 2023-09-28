@@ -56,27 +56,31 @@ def features_extraction_selection(nameDataset, datasetAdapted, trainFeatDataset=
             else:
                 features_filtered_direct = pd.read_pickle(
                     "./DatasetTS/" + nameDataset + "/Train/featureALL" + nameDataset + ".pk1")
-                filtreFeat, seriesAcc,features_filtered_direct = util.extractFeature(listOut, series, listOfClass,trainFeatDataset,features_filtered_direct)
+                filtreFeat, seriesAcc,features_filtered_direct = util.extractFeature(listOut, listOfClass,trainFeatDataset,features_filtered_direct)
         else:
-            filtreFeat, seriesAcc, features_filtered_direct = util.extractFeature(listOut, series, listOfClass,
+            filtreFeat, seriesAcc, features_filtered_direct = util.extractFeature(listOut, listOfClass,
                                                                                   trainFeatDataset)
-
-        # Extract the relevance for each features and it will be ordered by importance
-        ris = feature_selection.relevance.calculate_relevance_table(filtreFeat, seriesAcc, ml_task="classification")
-
-        # print("Number of Feature Extracted: " + str(len(features_filtered_direct.keys())))
-        ris = ris.sort_values(by='p_value')
-
-        if randomFeat:
-            ris = util.randomFeat(ris, numberFeatUse)
-        listOfFeatToUse = []
-        for t in range(numberFeatUse):
-            listOfFeatToUse.append(ris["feature"][t])
-        dfFeatUs = pd.DataFrame()
-        for x in range(len(listOfFeatToUse)):
-            dfFeatUs[listOfFeatToUse[x]] = features_filtered_direct[listOfFeatToUse[x]]
         pfa = PFA()
-        featPFA = pfa.fit(dfFeatUs)
+        if trainFeatDataset > 0:
+            # Extract the relevance for each features and it will be ordered by importance
+            ris = feature_selection.relevance.calculate_relevance_table(filtreFeat, seriesAcc, ml_task="classification")
+
+            # print("Number of Feature Extracted: " + str(len(features_filtered_direct.keys())))
+            ris = ris.sort_values(by='p_value')
+
+            if randomFeat:
+                ris = util.randomFeat(ris, numberFeatUse)
+            listOfFeatToUse = []
+            for t in range(numberFeatUse):
+                listOfFeatToUse.append(ris["feature"][t])
+            dfFeatUs = pd.DataFrame()
+            for x in range(len(listOfFeatToUse)):
+                dfFeatUs[listOfFeatToUse[x]] = features_filtered_direct[listOfFeatToUse[x]]
+
+            featPFA = pfa.fit(dfFeatUs)
+        else:
+            featPFA = pfa.fit(features_filtered_direct)
+
         return featPFA, features_filtered_direct
 
 def community_and_matrix_creation(featPFA, datasetAdapted, features_filtered_direct, chooseAlgorithm={'Greedy':{}}, threshold = 0.8):
@@ -157,7 +161,7 @@ def cluster_evaluation(matrixNsym, datasetAdapted):
 def FeatTS(nameDataset, ucrDataset=False):
     print('FeatTS on going..')
     datasetAdapted = preprocess_data(nameDataset, ucrDataset)
-    featPFA, features_filtered_direct = features_extraction_selection(nameDataset, datasetAdapted)
+    featPFA, features_filtered_direct = features_extraction_selection(nameDataset, datasetAdapted, trainFeatDataset=0.1)
     matrixNsym = community_and_matrix_creation(featPFA, datasetAdapted, features_filtered_direct)
     amiValue, normMutualInfo, randIndex, adjRandInd = cluster_evaluation(matrixNsym, datasetAdapted)
     return amiValue, normMutualInfo, randIndex, adjRandInd
