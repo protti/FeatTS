@@ -6,16 +6,16 @@ import os
 import multiprocessing as mp
 from src.PFA import PFA
 from pyts import datasets
+import numpy as np
+from aeon.datasets import load_classification
 
 def preprocess_data(nameDataset, UCR=False):
     if UCR:
-            datasetAll = list(datasets.fetch_ucr_dataset(nameDataset)['data_train']) + list(
-                datasets.fetch_ucr_dataset(nameDataset)['data_test'])
-            labelPred = list(datasets.fetch_ucr_dataset(nameDataset)['target_train']) + list(
-                datasets.fetch_ucr_dataset(nameDataset)['target_test'])
-
-            datasetAdapted = {"listOut":util.adaptTimeSeriesUCR(datasetAll),
-                                           'series': pd.Series((str(i) for i in labelPred)), "listOfClass":list(str(i) for i in labelPred)}
+        dataCof = load_classification(nameDataset)
+        X = np.squeeze(dataCof[0], axis=1)
+        y = dataCof[1].astype(int)
+        datasetAdapted = {"listOut":util.adaptTimeSeriesUCR(X),
+                                           'series': pd.Series((str(i) for i in y)), "listOfClass":list(str(i) for i in y)}
 
     else:
             testPath = "./DatasetTS/" + nameDataset + "/" + nameDataset + ".tsv"
@@ -61,6 +61,7 @@ def features_extraction_selection(nameDataset, datasetAdapted, trainFeatDataset=
             filtreFeat, seriesAcc, features_filtered_direct = util.extractFeature(listOut, listOfClass,
                                                                                   trainFeatDataset)
         pfa = PFA()
+        features_filtered_direct = util.cleaning(features_filtered_direct)
         if trainFeatDataset > 0:
             # Extract the relevance for each features and it will be ordered by importance
             ris = feature_selection.relevance.calculate_relevance_table(filtreFeat, seriesAcc, ml_task="classification")
@@ -161,7 +162,7 @@ def cluster_evaluation(matrixNsym, datasetAdapted):
 def FeatTS(nameDataset, ucrDataset=False):
     print('FeatTS on going..')
     datasetAdapted = preprocess_data(nameDataset, ucrDataset)
-    featPFA, features_filtered_direct = features_extraction_selection(nameDataset, datasetAdapted, trainFeatDataset=0.1)
+    featPFA, features_filtered_direct = features_extraction_selection(nameDataset, datasetAdapted, trainFeatDataset=0)
     matrixNsym = community_and_matrix_creation(featPFA, datasetAdapted, features_filtered_direct)
     amiValue, normMutualInfo, randIndex, adjRandInd = cluster_evaluation(matrixNsym, datasetAdapted)
     return amiValue, normMutualInfo, randIndex, adjRandInd

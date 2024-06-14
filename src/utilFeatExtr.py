@@ -8,6 +8,7 @@ from fastdtw import fastdtw
 from scipy.spatial.distance import euclidean
 from scipy.io import arff
 from sklearn.cluster import KMeans
+from sklearn.feature_selection import VarianceThreshold
 from sklearn.metrics.pairwise import pairwise_distances
 from sklearn.preprocessing import MinMaxScaler
 from pyclustering.cluster.kmedoids import kmedoids
@@ -522,6 +523,18 @@ def rand_index_score(clusters, classes):
     return (tp + tn) / (tp + fp + fn + tn)
 
 
+def cleaning(df: pd.DataFrame) -> pd.DataFrame:
+    # Drop columns which contain nan, +inf, and -inf values
+    df = df.dropna(axis=1, how='any')
+    cond = ((df == float('inf')) | (df == float('-inf'))).any(axis=0)
+    df = df.drop(df.columns[cond], axis=1)
+    # Apply a simple variance threshold
+    selector = VarianceThreshold()
+    selector.fit(df)
+    # Get only no-constant features
+    top_features = selector.get_feature_names_out()
+    df = df[top_features]
+    return df
 
 
 
