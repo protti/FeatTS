@@ -16,7 +16,7 @@ class FeatTS(object):
 
     	n_jobs : int, optional
     		Number of jobs tun run in parallel the graph computation for each length
-    		(default is 1).
+    		(default is 4).
 
     	value_PFA : float, optional
     		Value of explained variance
@@ -39,7 +39,7 @@ class FeatTS(object):
     		(default is Greedy).
     	"""
 
-    def __init__(self, n_clusters, n_jobs=1, value_PFA=0.9, max_numb_feat=20,
+    def __init__(self, n_clusters, n_jobs=4, value_PFA=0.9, max_numb_feat=20,
                  random_feat=False, threshold_community=0.8, algorithm_community='Greedy') :
         """
         initialize kGraph method
