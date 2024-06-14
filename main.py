@@ -1,4 +1,3 @@
-import time
 from aeon.datasets import load_classification
 from sklearn.metrics import adjusted_mutual_info_score
 import numpy as np
@@ -6,7 +5,7 @@ from FeatTS import FeatTS
 
 if __name__ == '__main__':
 
-    dataCof = load_classification("ECG200")
+    dataCof = load_classification("Coffee")
     X = np.squeeze(dataCof[0], axis=1)
     y = dataCof[1].astype(int)
 

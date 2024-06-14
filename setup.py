@@ -14,13 +14,14 @@ setup(
     url="https://github.com/protti/FeatTS",
     entry_points={},
     install_requires=[
-        'aeon==0.6.0',
-        'setuptools>=65.5.1',
-        'numpy==1.24.4',
-        'pandas==2.0.3',
-        'matplotlib==3.7.2',
-        'scipy==1.11.3',
-        'scikit-learn==1.2.2',
-        'networkx==3.1',
+        'fastdtw>=0.3.4',
+        'networkx>=2.5.1',
+        'numpy>=1.21.0',
+        'pandas>=1.3.0',
+        'pyclustering==0.10.1.2',
+        'scikit_learn>=0.24.2',
+        'scipy==1.13.1',
+        'tsfresh>=0.18.0',
+        'aeon>=0.6.0'
         ]
 )
