@@ -1,84 +1,17 @@
-import csv
-import os
 import random
-
 import pandas as pd
-import numpy as np
-from fastdtw import fastdtw
-from scipy.spatial.distance import euclidean
-from scipy.io import arff
 from sklearn.cluster import KMeans
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.metrics.pairwise import pairwise_distances
 from sklearn.preprocessing import MinMaxScaler
 from pyclustering.cluster.kmedoids import kmedoids
-from scipy.special import comb
-import pickle
 import networkx as nx
 import multiprocessing as mp
-
 from tsfresh import extract_features
+from FeatTS import SLPA
 
-from src import SLPA
-from src import utilityUCR as util
 matrixSym = []
 
-
-
-def mergeArffFiles(dataset):
-    dataTrain = arff.loadarff("./DatasetTS/" +dataset + "\\" + dataset + '_TRAIN.arff')
-    dataTest = arff.loadarff("./DatasetTS/" +dataset + "\\" +dataset +'_TEST.arff')
-    dfTrain = pd.DataFrame(dataTrain[0])
-    dfTest = pd.DataFrame(dataTest[0])
-    frames = [dfTrain, dfTest]
-    df = pd.concat(frames)
-    tsvConverter(dataset,df)
-
-def tsvConverter(dataset,df):
-    with open("./DatasetTS/" + dataset + "\\" + dataset+'.tsv','wt',newline='') as out_file:
-        tsv_writer = csv.writer(out_file, delimiter='\t')
-        for idx in range(0, len(df.index)):
-            timeSer = df.iloc[idx]
-            classTS = int(str(timeSer['target'],'utf-8'))
-            listOfValues = []
-            listOfValues.append(classTS)
-            for key in df.keys():
-                if 'att' in key:
-                    listOfValues.append(float(timeSer[key]))
-            tsv_writer.writerow(listOfValues)
-
-
-
-def adaptTimeSeries(path):
-    with open(path, 'r') as csvFile:
-        reader = csv.reader(csvFile)
-        id = 0
-        listOfValue = []
-        listOfId = []
-        listOfTime = []
-        listOfClass = []
-        listGeneric = []
-        startPoint = 1
-        splitClass = 0
-
-
-        for row in reader:
-            listValueApp = []
-            splitted = row[0].split('\t')
-            listOfClass.append(splitted[splitClass])
-            for i in range(startPoint,len(splitted)):
-                if splitted[i] != "NaN":
-                    listOfValue.append(float(splitted[i]))
-                    listValueApp.append(float(splitted[i]))
-                    listOfTime.append(i)
-                    listOfId.append(id)
-                    listGeneric.append((id,i,(float(splitted[i]))))
-            id += 1
-
-        df = pd.DataFrame(listGeneric, columns=['id', 'time','value'])
-        series = pd.Series((i for i in listOfClass))
-
-        return df,series,listOfClass
 
 def adaptTimeSeriesUCR(input_data):
     # Initialize empty lists to store the data
@@ -213,69 +146,7 @@ def getMedianDistance(threshold,listOfValue):
 
 
 
-def getMedianDistanceDTW(threshold,listOfValue,matrixDistanceLoad = []):
-    matrixDistance = [[-1 for x in range(len(listOfValue))] for y in range(len(listOfValue))]
-    try:
-        listOfDistance = []
-        if matrixDistanceLoad == []:
-            listOfDistance,matrixDistance = calculationDistDTW(listOfValue)
-        else:
-            listOfDistance,matrixDistance = calculationDistDTW(listOfValue,matrixDistanceLoad)
-        listOfDistance.sort(reverse=False)
 
-    except Exception as e:
-        print(e)
-    if listOfDistance[int(len(listOfDistance) * threshold)] == 0:
-        print("All the values are equals")
-    if len(matrixDistanceLoad) != 0:
-        return listOfDistance[int(len(listOfDistance) * threshold)], matrixDistanceLoad
-    else:
-        return listOfDistance[int(len(listOfDistance) * threshold)], matrixDistance
-
-
-
-def calculationDistDTW(listOfValue,matrixDistanceLoaded = []):
-    if matrixDistanceLoaded == []:
-        w = len(listOfValue)
-        matrixDistanceLoaded = [[0 for x in range(w)] for y in range(w)]
-
-        def matrixCalcParal(result):
-            for val in result:
-                matrixDistanceLoaded[val["i"]][val["j"]] = val["value"]
-
-        listOfValueList = []
-        for i in range(0, len(listOfValue)):
-            listOfValueList.append(listOfValue[i:])
-
-
-        pool = mp.Pool(mp.cpu_count())
-        for ind in range(len(listOfValueList)):
-            totRig = int(len(listOfValueList[ind]) / mp.cpu_count())
-            for j in range(0, mp.cpu_count()):
-                start = j * int((len(listOfValueList[ind]) / mp.cpu_count()))
-                if j == mp.cpu_count() - 1:
-                    totRig += int(len(listOfValueList[ind]) % mp.cpu_count())
-                pool.apply_async(calcValueDTW, args=(ind,start, listOfValueList[ind], totRig), callback=matrixCalcParal)
-
-        pool.close()
-        pool.join()
-
-    listDist = []
-    for i in range(0, len(listOfValue)):
-        for j in range(i + 1, len(listOfValue)):
-            listDist.append(matrixDistanceLoaded[i][j])
-    return listDist,matrixDistanceLoaded
-
-
-def calcValueDTW(indAna,start, listOfValue, totRig):
-    dictOfValueIJ = []
-    for val in range(start,start+totRig):
-        value = fastdtw(listOfValue[0], listOfValue[val], dist=euclidean)[0]
-        dictSingle = {"value": value,
-                      "i": indAna, "j": val+indAna}
-        dictOfValueIJ.append(dictSingle)
-
-    return dictOfValueIJ
 
 def getTabNonSym(setCluster,listId):
     w = len(listId)
@@ -338,7 +209,7 @@ def getCluster(matrixsym,setCluster,numClust):
         dictTotal[x] = listOfDist
 
 
-    idChoose = util.getInitialIndex(dictTotal,numClust)
+    idChoose = getInitialIndex(dictTotal,numClust)
     D = pairwise_distances(matrixsym, metric='correlation')
 
 
@@ -402,7 +273,6 @@ def createSet(listOfCommFind,clusterK):
     return listOfCluster
 
 
-
 def randomFeat(ris,numberFeatUse):
 
     ris = ris.dropna(subset=['p_value'])
@@ -437,7 +307,7 @@ def getCommunityDetectionTrain(feature, features_filtered_direct, listOfId, thre
                 coms.append(frozenset(extrC[val]))
         elif list(chooseAlgorithm.keys())[0] == 'kClique':
             coms = list(nx.algorithms.community.k_clique_communities(G, chooseAlgorithm['SLPA']['trainClique']))
-        else:
+        elif list(chooseAlgorithm.keys())[0] == 'Greedy':
             coms = list(nx.algorithms.community.greedy_modularity_communities(G))
 
         if len(coms) > clusterK:
@@ -450,77 +320,6 @@ def getCommunityDetectionTrain(feature, features_filtered_direct, listOfId, thre
         pass
 
     return dictOfInfo
-
-def calcLocalGen(amiValues):
-    past = -1
-    for items in amiValues.iteritems():
-        if past == -1:
-            past = items[1]
-        elif past <= items[1]:
-            past = items[1]
-        else:
-            break
-
-    return amiValues.max(),past
-
-def getCommunityDetectionDTW(listForDTW,threshold,clusterK,chooseAlgorithm,trainKClique,listOfId,nameDataset,algorithmFeat):
-    listOfDictInfoFeat = {}
-    dictOfInfo = {}
-    matrixDistance = []
-    G = nx.Graph()
-    H = nx.path_graph(listOfId)
-    G.add_nodes_from(H)
-
-    if os.path.isfile("./DatasetTS/" +nameDataset +"/Train/distanceDTW") !=  True:
-        distanceMinAccept,matrixDistance = getMedianDistanceDTW(threshold, listForDTW)
-        pickle_out = open("./DatasetTS/" +nameDataset +"/Train/distanceDTW", "wb")
-
-        pickle.dump(matrixDistance, pickle_out)
-        pickle_out.close()
-    else:
-        pickle_in = open("./DatasetTS/" +nameDataset +"/Train/distanceDTW", "rb")
-        matrixDistance = pickle.load(pickle_in)
-        distanceMinAccept, matrixDistance = getMedianDistanceDTW(threshold, listForDTW,matrixDistance)
-
-    for i in range(0, len(listOfId)):
-        for j in range(i + 1, len(listOfId)):
-            if matrixDistance[i][j] < distanceMinAccept:
-                G.add_edge(i, j)
-
-    try:
-
-        if chooseAlgorithm == 0:
-            coms = list(nx.algorithms.community.greedy_modularity_communities(G))
-        elif chooseAlgorithm == 1:
-            coms = list(nx.algorithms.community.k_clique_communities(G, trainKClique))
-        else:
-            extrC = SLPA.find_communities(G, 20, 0.01)
-            coms = []
-            for val in extrC:
-                coms.append(frozenset(extrC[val]))
-
-        for value in coms:
-            if len(coms) > clusterK:
-                dictOfInfo["DTW"] = {"distance": distanceMinAccept, "cluster": coms,
-                                       "weightFeat": clusterK / len(coms)}
-            else:
-                dictOfInfo["DTW"] = {"distance": distanceMinAccept, "cluster": coms,
-                                       "weightFeat": len(coms) / clusterK}
-    except Exception as e:
-        print(e)
-        pass
-    return dictOfInfo
-
-def rand_index_score(clusters, classes):
-    tp_plus_fp = comb(np.bincount(clusters), 2).sum()
-    tp_plus_fn = comb(np.bincount(classes), 2).sum()
-    A = np.c_[(clusters, classes)]
-    tp = sum(comb(np.bincount(A[A[:, 0] == i, 1]), 2).sum()
-             for i in set(clusters))
-    fp = tp_plus_fp - tp
-    fn = tp_plus_fn - tp
-    tn = comb(len(A), 2) - tp - fp - fn
-    return (tp + tn) / (tp + fp + fn + tn)
 
 
 def cleaning(df: pd.DataFrame) -> pd.DataFrame:
@@ -536,7 +335,40 @@ def cleaning(df: pd.DataFrame) -> pd.DataFrame:
     df = df[top_features]
     return df
 
+def max_num_in_list( list ):
+    max = list[0]
+    index = 0
+    for i in range(1, len(list)):
+        if list[i] > max:
+            max = list[i]
+            index = i
+    return max, index
+
+def min_num_in_list( list ):
+    min = list[ 0 ]
+    index = 0
+    for i in range(1,len(list)):
+        if list[i] < min:
+            min = list[i]
+            index = i
+    return min,index
 
 
+def getInitialIndex(dictTotal,cluster):
+    listOfMinDist = list()
+    listOfMinId = list()
+    dictSumDistance = dict()
+    for idX in dictTotal.keys():
+        somma = 0
+        for singleDict in dictTotal[idX]:
+            somma += singleDict["distance"]
+        dictSumDistance[idX]=somma
+        if len(listOfMinDist) < cluster:
+            listOfMinDist.append(dictSumDistance[idX])
+            listOfMinId.append(idX)
+        else:
+            if max_num_in_list(listOfMinDist)[0] > somma:
+                listOfMinDist[max_num_in_list(listOfMinDist)[1]] = dictSumDistance[idX]
+                listOfMinId[listOfMinDist.index(dictSumDistance[idX])] = idX
 
-
+    return listOfMinId
