@@ -70,6 +70,7 @@ class FeatTS(object):
         self : object
         	Fitted estimator.
         """
+
         if y != []:
             datasetAdapted = {"listOut": util.adaptTimeSeriesUCR(X),'series': pd.Series((str(i) for i in y)),
                               "listOfClass": list(str(i) for i in y)}
