@@ -10,14 +10,14 @@ class PFA(object):
     def __init__(self, q=None):
         self.q = q
 
-    def fit(self, X):
+    def fit(self, X, expl_var = 0.9):
         if not self.q:
             self.q = X.shape[1]
 
         sc = StandardScaler()
         X_trans = sc.fit_transform(X)
         # Choice of the Explained Variance
-        pca = PCA(0.9)
+        pca = PCA(expl_var)
         pca.fit(X_trans)
         princComp = len(pca.explained_variance_ratio_)
         A_q = pca.components_.T

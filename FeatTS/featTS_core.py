@@ -87,11 +87,11 @@ class FeatTS(object):
             datasetAdapted = {"listOut": util.adaptTimeSeriesUCR(X), 'series': pd.Series(list(str(-100) for i in range(X.shape[0]))),
                               "listOfClass": list(-100 for i in range(X.shape[0]))}
 
-        self.feats_selected_, features_filtered_direct = self.__features_extraction_selection(datasetAdapted, train_semi_supervised, external_feat)
+        self.feats_selected_, features_filtered_direct = self.__features_extraction_selection(datasetAdapted, train_semi_supervised, external_feat, self.value_PFA)
         matrixNsym = self.__community_and_matrix_creation(self.feats_selected_, datasetAdapted, features_filtered_direct)
         self.labels_ = self.__cluster(matrixNsym, datasetAdapted)
 
-    def __features_extraction_selection(self,datasetAdapted, train_semi_supervised, external_feat):
+    def __features_extraction_selection(self,datasetAdapted, train_semi_supervised, external_feat, value_PFA):
 
         # Create the dataframe for the extraction of the features
         listOut = datasetAdapted["listOut"]
@@ -121,9 +121,9 @@ class FeatTS(object):
             dfFeatUs = pd.DataFrame()
             for x in range(len(listOfFeatToUse)):
                 dfFeatUs[listOfFeatToUse[x]] = features_filtered_direct[listOfFeatToUse[x]]
-            featPFA = pfa.fit(dfFeatUs)
+            featPFA = pfa.fit(dfFeatUs, value_PFA)
         else:
-            featPFA = pfa.fit(features_filtered_direct)
+            featPFA = pfa.fit(features_filtered_direct, value_PFA)
 
         if external_feat is not None:
             featPFA.extend(external_feat.columns.tolist())
