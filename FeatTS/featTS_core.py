@@ -1,3 +1,5 @@
+import pandas
+
 import FeatTS.utilFeatExtr as util
 from FeatTS.PFA import PFA
 import pandas as pd
@@ -51,8 +53,9 @@ class FeatTS(object):
         self.random_feat = random_feat
         self.threshold_community = threshold_community
         self.algorithm_community = {algorithm_community:{}}
+        self.feats_selected_ = []
 
-    def fit(self, X, y=[], train_semi_supervised=0):
+    def fit(self, X, y=[], train_semi_supervised=0, external_feat: pandas.DataFrame = None):
         """
         compute kGraph on X
 
@@ -65,39 +68,47 @@ class FeatTS(object):
 
         train_perc : percentage of semi-supervision (float)
 
+        external_feat : features to use in combination with the features extracted (Dataframe)
+
         Returns
         -------
         self : object
         	Fitted estimator.
+        	:param external_feat:
+        	:param train_semi_supervised:
         """
+        if external_feat is not None and X.shape[0] != external_feat.shape[0] :
+            raise ValueError("The external features should have a feature value for each time series in input")
 
-        if y != []:
+        if y!=[]:
             datasetAdapted = {"listOut": util.adaptTimeSeriesUCR(X),'series': pd.Series((str(i) for i in y)),
                               "listOfClass": list(str(i) for i in y)}
         else:
             datasetAdapted = {"listOut": util.adaptTimeSeriesUCR(X), 'series': pd.Series(list(str(-100) for i in range(X.shape[0]))),
                               "listOfClass": list(-100 for i in range(X.shape[0]))}
 
-        featPFA, features_filtered_direct = self.__features_extraction_selection(datasetAdapted, train_semi_supervised)
-        matrixNsym = self.__community_and_matrix_creation(featPFA, datasetAdapted, features_filtered_direct)
+        self.feats_selected_, features_filtered_direct = self.__features_extraction_selection(datasetAdapted, train_semi_supervised, external_feat)
+        matrixNsym = self.__community_and_matrix_creation(self.feats_selected_, datasetAdapted, features_filtered_direct)
         self.labels_ = self.__cluster(matrixNsym, datasetAdapted)
 
-
-
-    def __features_extraction_selection(self,datasetAdapted, train_semi_supervised):
-
+    def __features_extraction_selection(self,datasetAdapted, train_semi_supervised, external_feat):
 
         # Create the dataframe for the extraction of the features
         listOut = datasetAdapted["listOut"]
         listOfClass = datasetAdapted["listOfClass"]
 
-        filtreFeat, seriesAcc, features_filtered_direct = util.extractFeature(listOut, listOfClass, train_semi_supervised)
+        filtreFeat, seriesAcc, features_filtered_direct = util.extractFeature(listOut, listOfClass, train_semi_supervised, external_feat=external_feat)
+        if external_feat is not None:
+            external_feat = features_filtered_direct[external_feat.columns.tolist()].copy()
+            features_filtered_direct.drop(columns=external_feat.columns.tolist(), inplace=True)
+
         pfa = PFA()
         features_filtered_direct = util.cleaning(features_filtered_direct)
         if train_semi_supervised > 0:
             # Extract the relevance for each features and it will be ordered by importance
             ris = feature_selection.relevance.calculate_relevance_table(filtreFeat, seriesAcc, ml_task="classification")
-
+            if external_feat is not None:
+                ris = ris[~ris['feature'].isin(external_feat.columns.tolist())]
             ris = ris.sort_values(by='p_value')
 
             if self.random_feat:
@@ -113,6 +124,10 @@ class FeatTS(object):
             featPFA = pfa.fit(dfFeatUs)
         else:
             featPFA = pfa.fit(features_filtered_direct)
+
+        if external_feat is not None:
+            featPFA.extend(external_feat.columns.tolist())
+            features_filtered_direct = features_filtered_direct.join(external_feat)
 
         return featPFA, features_filtered_direct
     def __community_and_matrix_creation(self, featPFA, datasetAdapted, features_filtered_direct):
@@ -174,5 +189,4 @@ class FeatTS(object):
         for value in range(len(listOfCommFindTest)):
             for ind in listOfCommFindTest[value]["cluster"]:
                 y_pred[ind] = value
-
         return y_pred
