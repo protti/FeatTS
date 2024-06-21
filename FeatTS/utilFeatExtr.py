@@ -78,32 +78,14 @@ def getDataframeAcc(appSeries,perc):
                     allNotAccInd.append(i)
     return list(sorted(allAccInd)),list(sorted(allNotAccInd))
 
+def extractFeature(listOut, external_feat=None):
 
+    features_filtered_direct = extract_features(listOut, column_id='id', column_sort='time')
+    if external_feat is not None:
+        features_filtered_direct = features_filtered_direct.join(external_feat)
+    features_filtered_direct = normalization_data(features_filtered_direct)
 
-def getSubSetFeatures(df,allAccInd,allNotAccInd,listOfClass):
-    df = df.drop(allNotAccInd, axis=0)
-    df = df.reset_index()
-    seriesAcc = pd.Series((listOfClass[i] for i in allAccInd))
-    return df,seriesAcc
-
-
-def extractFeature(listOut, listOfClass,trainFeatDataset,features_filtered_direct = None, external_feat=None):
-
-    if features_filtered_direct is None:
-        features_filtered_direct = extract_features(listOut, column_id='id', column_sort='time')
-        if external_feat is not None:
-            features_filtered_direct = features_filtered_direct.join(external_feat)
-        features_filtered_direct = normalization_data(features_filtered_direct)
-
-
-    allAcc,allNotAcc = choose_and_exclude_indices_by_percentage(listOfClass, trainFeatDataset)
-    # allAcc,allNotAcc = getDataframeAcc(series,trainFeatDataset)
-    filtreFeat,seriesAcc = getSubSetFeatures(features_filtered_direct,allAcc,allNotAcc,listOfClass)
-    if 'id' in filtreFeat.keys():
-        filtreFeat = filtreFeat.drop('id',axis='columns')
-    else:
-        filtreFeat = filtreFeat.drop('index',axis='columns')
-    return filtreFeat,seriesAcc,features_filtered_direct
+    return features_filtered_direct
 
 
 def normalization_data(features_filtered_direct):

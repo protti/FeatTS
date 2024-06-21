@@ -4,11 +4,33 @@ from sklearn.metrics import adjusted_mutual_info_score
 import numpy as np
 from FeatTS import FeatTS
 
+import random
+from collections import defaultdict
+
+def select_random_percent(labels, perc):
+    # Group indices by class
+    class_indices = defaultdict(list)
+    for idx, label in enumerate(labels):
+        class_indices[label].append(idx)
+
+    # Select 20% of indices randomly for each class
+    selected_indices = {}
+    for label, indices in class_indices.items():
+        num_to_select = max(1, int(len(indices) * perc))  # At least one item should be selected
+        selected_indices_for_class = random.sample(indices, num_to_select)
+        for idx in selected_indices_for_class:
+            selected_indices[idx] = label
+
+    return selected_indices
+
 if __name__ == '__main__':
 
-    dataCof = load_classification("Coffee")
+    dataCof = load_classification("ArrowHead")
     X = np.squeeze(dataCof[0], axis=1)
     y = dataCof[1].astype(int)
-    featTS = FeatTS(n_clusters=2)
-    featTS.fit(X,y,train_semi_supervised=0.2)
+    # external_feat = pd.DataFrame({'LEN':y})
+    labels = select_random_percent(y,0.2)
+    featTS = FeatTS(n_clusters=3, n_jobs=4)
+    featTS.fit(X,labels=labels)
     print(adjusted_mutual_info_score(featTS.labels_,y))
+    print(featTS.feats_selected_)

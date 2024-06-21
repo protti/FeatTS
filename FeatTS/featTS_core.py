@@ -5,7 +5,7 @@ from FeatTS.PFA import PFA
 import pandas as pd
 from tsfresh import feature_selection
 import multiprocessing as mp
-
+import numpy as np
 
 class FeatTS(object):
     """
@@ -41,7 +41,7 @@ class FeatTS(object):
     		(default is Greedy).
     	"""
 
-    def __init__(self, n_clusters, n_jobs=4, value_PFA=0.9, max_numb_feat=20,
+    def __init__(self, n_clusters, n_jobs=1, value_PFA=0.9, max_numb_feat=20,
                  random_feat=False, threshold_community=0.8, algorithm_community='Greedy') :
         """
         initialize FeatTS method
@@ -55,7 +55,7 @@ class FeatTS(object):
         self.algorithm_community = {algorithm_community:{}}
         self.feats_selected_ = []
 
-    def fit(self, X, y=[], train_semi_supervised=0, external_feat: pandas.DataFrame = None):
+    def fit(self, X, labels=None, external_feat: pd.DataFrame = None):
         """
         compute FeatTS on X
 
@@ -64,7 +64,7 @@ class FeatTS(object):
         X : array of shape (n_samples, n_timestamps)
         	Training instances to cluster.
 
-        y : array of labels (n_samples)
+        y : dict of labels {idx:class}
 
         train_perc : percentage of semi-supervision (float)
 
@@ -80,35 +80,66 @@ class FeatTS(object):
         if external_feat is not None and X.shape[0] != external_feat.shape[0] :
             raise ValueError("The external features should have a feature value for each time series in input")
 
-        if y!=[]:
-            datasetAdapted = {"listOut": util.adaptTimeSeriesUCR(X),'series': pd.Series((str(i) for i in y)),
-                              "listOfClass": list(str(i) for i in y)}
-        else:
-            datasetAdapted = {"listOut": util.adaptTimeSeriesUCR(X), 'series': pd.Series(list(str(-100) for i in range(X.shape[0]))),
-                              "listOfClass": list(-100 for i in range(X.shape[0]))}
+        if labels is not None:
+            datasetAdapted = {"listOut": util.adaptTimeSeriesUCR(X),'labels': labels}
 
-        self.feats_selected_, features_filtered_direct = self.__features_extraction_selection(datasetAdapted, train_semi_supervised, external_feat, self.value_PFA)
+        else:
+            datasetAdapted = {"listOut": util.adaptTimeSeriesUCR(X)}
+
+        self.feats_selected_, features_filtered_direct = self.__features_extraction_selection(datasetAdapted, external_feat, self.value_PFA)
+
+
         matrixNsym = self.__community_and_matrix_creation(self.feats_selected_, datasetAdapted, features_filtered_direct)
         self.labels_ = self.__cluster(matrixNsym, datasetAdapted)
 
-    def __features_extraction_selection(self,datasetAdapted, train_semi_supervised, external_feat, value_PFA):
+    def __features_extraction_selection(self,datasetAdapted, external_feat, value_PFA):
 
         # Create the dataframe for the extraction of the features
         listOut = datasetAdapted["listOut"]
-        listOfClass = datasetAdapted["listOfClass"]
 
-        filtreFeat, seriesAcc, features_filtered_direct = util.extractFeature(listOut, listOfClass, train_semi_supervised, external_feat=external_feat)
+        features_filtered_direct = util.extractFeature(listOut, external_feat=external_feat)
+
         if external_feat is not None:
             external_feat = features_filtered_direct[external_feat.columns.tolist()].copy()
-            features_filtered_direct.drop(columns=external_feat.columns.tolist(), inplace=True)
+            # features_filtered_direct.drop(columns=external_feat.columns.tolist(), inplace=True)
 
         pfa = PFA()
         features_filtered_direct = util.cleaning(features_filtered_direct)
-        if train_semi_supervised > 0:
+
+        if 'labels' in list(datasetAdapted.keys()):
+            allAcc = list(datasetAdapted["labels"].keys())
+            seriesAcc = pd.Series((datasetAdapted["labels"][i] for i in allAcc))
+            filtreFeat = features_filtered_direct.loc[allAcc].reset_index(drop=True)
+
+            multiclass = False
+            significant_class = 1
+            if len(seriesAcc.unique()) > 2:
+                multiclass = True
+                significant_class = len(seriesAcc.unique())
+
+
+            if 'id' in filtreFeat.keys():
+                filtreFeat = filtreFeat.drop('id', axis='columns')
+            elif 'index' in filtreFeat.keys():
+                filtreFeat = filtreFeat.drop('index', axis='columns')
+
+
             # Extract the relevance for each features and it will be ordered by importance
-            ris = feature_selection.relevance.calculate_relevance_table(filtreFeat, seriesAcc, ml_task="classification")
+            ris = feature_selection.relevance.calculate_relevance_table(filtreFeat, seriesAcc,
+                                                                        ml_task="classification",
+                                                                        n_jobs=self.n_jobs,
+                                                                        multiclass=multiclass,
+                                                                        n_significant=significant_class)
             if external_feat is not None:
                 ris = ris[~ris['feature'].isin(external_feat.columns.tolist())]
+
+            if multiclass:
+                p_value_columns = [col for col in ris.columns if col.startswith('p_value')]
+                # Replace NaN values with inf in the p_value columns
+                ris[p_value_columns] = ris[p_value_columns].fillna(np.inf)
+                # Sum the p_value columns
+                ris['p_value'] = ris[p_value_columns].sum(axis=1)
+
             ris = ris.sort_values(by='p_value')
 
             if self.random_feat:
@@ -127,20 +158,18 @@ class FeatTS(object):
 
         if external_feat is not None:
             featPFA.extend(external_feat.columns.tolist())
-            features_filtered_direct = features_filtered_direct.join(external_feat)
+            # Identify columns in external_feat that are not in features_filtered_direct
+            non_overlapping_columns = external_feat.columns.difference(features_filtered_direct.columns)
+            # Select only the non-overlapping columns from external_feat
+            external_feat_non_overlapping = external_feat[non_overlapping_columns]
+            # Perform the join with the non-overlapping columns
+            features_filtered_direct = features_filtered_direct.join(external_feat_non_overlapping)
 
         return featPFA, features_filtered_direct
+
     def __community_and_matrix_creation(self, featPFA, datasetAdapted, features_filtered_direct):
-
         listOfId = set(datasetAdapted["listOut"]["id"])
-        dictOfT = {}
-        # Create of dataframe where there are the values of the features take in consideration
-        for value in set(list(datasetAdapted["series"])):
-            dictSing = {value: pd.Series([0], index=["count"])}
-            dictOfT.update(dictSing)
-
         dictOfInfoTrain = {}
-
         # Creation of the features that we want to use
         listOfFeat = featPFA
 
@@ -167,7 +196,6 @@ class FeatTS(object):
                 dictSing = {'list': list(clusterInside), 'weight': dictOfInfoTrain[key]["weightFeat"]}
                 setCluster.append(dictSing)
 
-
         # Creation of CoOccurrence Matrix
         # print("Matrix Creation...")
         matrixNsym = util.getTabNonSym(setCluster, list(listOfId))
@@ -178,14 +206,13 @@ class FeatTS(object):
         # List of the cluster created in the training set. It will be used later for the intersaction
         # with the cluster extract from the testing.
         listOfId = set(datasetAdapted["listOut"]["id"])
-        series = datasetAdapted["series"]
 
         listOfCommFindTest = util.getCluster(matrixNsym, listOfId, self.n_clusters)
 
         listOfCommFindTest = util.createSet(listOfCommFindTest, self.n_clusters)
 
         # Modify the index of the TimeSeries with their classes
-        y_pred = [0 for x in range(len(series))]
+        y_pred = [0 for x in range(len(listOfId))]
         for value in range(len(listOfCommFindTest)):
             for ind in listOfCommFindTest[value]["cluster"]:
                 y_pred[ind] = value
