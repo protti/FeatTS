@@ -44,7 +44,7 @@ class FeatTS(object):
     def __init__(self, n_clusters, n_jobs=4, value_PFA=0.9, max_numb_feat=20,
                  random_feat=False, threshold_community=0.8, algorithm_community='Greedy') :
         """
-        initialize kGraph method
+        initialize FeatTS method
         """
         self.n_clusters = n_clusters
         self.n_jobs = n_jobs
@@ -57,7 +57,7 @@ class FeatTS(object):
 
     def fit(self, X, y=[], train_semi_supervised=0, external_feat: pandas.DataFrame = None):
         """
-        compute kGraph on X
+        compute FeatTS on X
 
         Parameters
         ----------
