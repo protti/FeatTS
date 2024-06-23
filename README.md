@@ -27,9 +27,11 @@ if __name__ == '__main__':
     dataCof = load_classification("Coffee")
     X = np.squeeze(dataCof[0], axis=1)
     y = dataCof[1].astype(int)
-
+    labels = {0: y[0], 1: y[1], 5: y[5], 6: y[0]}  # semi-supervised mode
+    n_clusters = 2  # Number of clusters
+    
     featTS = FeatTS(n_clusters=2)
-    featTS.fit(X,y,train_semi_supervised=0.2)
+    featTS.fit(X,labels=labels)
     print(adjusted_mutual_info_score(featTS.labels_,y))
 ```
 
@@ -47,10 +49,11 @@ if __name__ == '__main__':
     dataCof = load_classification("Coffee")
     X = np.squeeze(dataCof[0], axis=1)
     y = dataCof[1].astype(int)
+    labels = {0: y[0], 1: y[1], 5: y[5], 6: y[0]}  # semi-supervised mode
     external_feat = pd.DataFrame({'LEN':y})
 
     featTS = FeatTS(n_clusters=2)
-    featTS.fit(X,y,train_semi_supervised=0.2, external_feat=external_feat)
+    featTS.fit(X,labels=labels, external_feat=external_feat)
     print(adjusted_mutual_info_score(featTS.labels_,y))
     print(featTS.feats_selected_)
 ```
