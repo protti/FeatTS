@@ -1,0 +1,14 @@
+LICENSE
+README.md
+setup.py
+FeatTS/PFA.py
+FeatTS/SLPA.py
+FeatTS/__init__.py
+FeatTS/featTS_core.py
+FeatTS/utilFeatExtr.py
+FeatTS.egg-info/PKG-INFO
+FeatTS.egg-info/SOURCES.txt
+FeatTS.egg-info/dependency_links.txt
+FeatTS.egg-info/requires.txt
+FeatTS.egg-info/top_level.txt
+FeatTS.egg-info/zip-safe

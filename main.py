@@ -3,7 +3,7 @@ from aeon.datasets import load_classification
 from sklearn.metrics import adjusted_mutual_info_score
 import numpy as np
 from FeatTS import FeatTS
-
+import time
 import random
 from collections import defaultdict
 
@@ -25,12 +25,19 @@ def select_random_percent(labels, perc):
 
 if __name__ == '__main__':
 
-    dataCof = load_classification("ArrowHead")
+    dataCof = load_classification("Coffee")
     X = np.squeeze(dataCof[0], axis=1)
     y = dataCof[1].astype(int)
+    print(X.shape)
     # external_feat = pd.DataFrame({'LEN':y})
     labels = select_random_percent(y,0.2)
-    featTS = FeatTS(n_clusters=3, n_jobs=4)
-    featTS.fit(X,labels=labels)
-    print(adjusted_mutual_info_score(featTS.labels_,y))
-    print(featTS.feats_selected_)
+    scores = []
+    for i in range(5):
+        start = time.time()
+        featTS = FeatTS(n_clusters=2, n_jobs=4)
+        featTS.fit(X)
+        scores.append(adjusted_mutual_info_score(featTS.labels_,y))
+        end = time.time()
+        print(end-start)
+        print(adjusted_mutual_info_score(featTS.labels_,y))
+    print(np.mean(scores))

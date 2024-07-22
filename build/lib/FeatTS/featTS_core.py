@@ -2,14 +2,10 @@ import pandas
 
 import FeatTS.utilFeatExtr as util
 from FeatTS.PFA import PFA
-from concurrent.futures import ProcessPoolExecutor, as_completed
-from multiprocessing import Manager
 import pandas as pd
 from tsfresh import feature_selection
+import multiprocessing as mp
 import numpy as np
-import time
-
-
 
 class FeatTS(object):
     """
@@ -90,27 +86,18 @@ class FeatTS(object):
         else:
             datasetAdapted = {"listOut": util.adaptTimeSeriesUCR(X)}
 
-        start_feat_sel = time.time()
-
         self.feats_selected_, features_filtered_direct = self.__features_extraction_selection(datasetAdapted, external_feat, self.value_PFA)
 
-        print(f"Time to select features: {time.time() - start_feat_sel}")
-        start_comm_detect = time.time()
 
         matrixNsym = self.__community_and_matrix_creation(self.feats_selected_, datasetAdapted, features_filtered_direct)
-
-        print(f"Time to Detect Communities and Create Matrix: {time.time() - start_comm_detect}")
-        start_clustering = time.time()
         self.labels_ = self.__cluster(matrixNsym, datasetAdapted)
-
-        print(f"Time to cluster: {time.time() - start_clustering}")
 
     def __features_extraction_selection(self,datasetAdapted, external_feat, value_PFA):
 
         # Create the dataframe for the extraction of the features
         listOut = datasetAdapted["listOut"]
 
-        features_filtered_direct = util.extractFeature(listOut, external_feat=external_feat, n_jobs=self.n_jobs)
+        features_filtered_direct = util.extractFeature(listOut, external_feat=external_feat)
 
         if external_feat is not None:
             external_feat = features_filtered_direct[external_feat.columns.tolist()].copy()
@@ -181,35 +168,27 @@ class FeatTS(object):
         return featPFA, features_filtered_direct
 
     def __community_and_matrix_creation(self, featPFA, datasetAdapted, features_filtered_direct):
-        
-        start_matrix_creation = time.time()
         listOfId = set(datasetAdapted["listOut"]["id"])
-        manager = Manager()
-        dictOfInfoTrain = manager.dict()
         dictOfInfoTrain = {}
         # Creation of the features that we want to use
         listOfFeat = featPFA
+
+        # print("Community Creation...")
 
         def collect_result_Train(result):
             dictOfInfoTrain.update(result)
 
 
-        chunk_size = len(listOfFeat) // self.n_jobs
-        feature_chunks = [listOfFeat[i:i + chunk_size] for i in range(0, len(listOfFeat), chunk_size)]
+        pool = mp.Pool(self.n_jobs)
 
-        with ProcessPoolExecutor(max_workers=self.n_jobs) as executor:
-            futures = [
-                executor.submit(util.getCommunityDetectionTrain, feature_chunk, features_filtered_direct, listOfId,
-                                self.threshold_community, self.n_clusters, self.algorithm_community)
-                for feature_chunk in feature_chunks
-            ]
+        # Creation of graph and extraction of community detection
+        for feature in listOfFeat:
+            pool.apply_async(util.getCommunityDetectionTrain, args=(feature, features_filtered_direct, listOfId,
+                                                                    self.threshold_community, self.n_clusters, self.algorithm_community),
+                             callback=collect_result_Train)
+        pool.close()
+        pool.join()
 
-            for future in as_completed(futures):
-                collect_result_Train(future.result())
-
-        print(f"Time to detect communities: {time.time() - start_matrix_creation}")
-
-        
         setCluster = list()
         # Creation of list with all the cluster and their weights, used for the creation of CoOccurrence Matrix
         for key in dictOfInfoTrain.keys():
@@ -219,9 +198,7 @@ class FeatTS(object):
 
         # Creation of CoOccurrence Matrix
         # print("Matrix Creation...")
-        
-        matrixNsym = util.getTabNonSym(setCluster, list(listOfId), n_jobs=self.n_jobs)
-        print(f"Time to Create Matrix General: {time.time() - start_matrix_creation}")
+        matrixNsym = util.getTabNonSym(setCluster, list(listOfId))
         return matrixNsym
 
     def __cluster(self, matrixNsym, datasetAdapted):

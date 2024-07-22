@@ -9,10 +9,6 @@ import networkx as nx
 import multiprocessing as mp
 from tsfresh import extract_features
 from FeatTS import SLPA
-import time
-import numpy as np
-from itertools import combinations
-import os
 
 matrixSym = []
 
@@ -82,9 +78,9 @@ def getDataframeAcc(appSeries,perc):
                     allNotAccInd.append(i)
     return list(sorted(allAccInd)),list(sorted(allNotAccInd))
 
-def extractFeature(listOut, external_feat=None, n_jobs=1):
+def extractFeature(listOut, external_feat=None):
 
-    features_filtered_direct = extract_features(listOut, column_id='id', column_sort='time', n_jobs=n_jobs)
+    features_filtered_direct = extract_features(listOut, column_id='id', column_sort='time')
     if external_feat is not None:
         features_filtered_direct = features_filtered_direct.join(external_feat)
     features_filtered_direct = normalization_data(features_filtered_direct)
@@ -119,48 +115,57 @@ def normalization_data(features_filtered_direct):
     return features_filtered_direct
 
 
+def getMedianDistance(threshold,listOfValue):
+    listOfDistance = []
+    try:
+        for i in range(0,len(listOfValue)):
+            for j in range(i + 1, len(listOfValue)):
+                listOfDistance.append(abs(listOfValue[i] - listOfValue[j]))
+        listOfDistance.sort(reverse=False)
 
-from concurrent.futures import ProcessPoolExecutor
+    except Exception as e:
+        print(e)
+    if listOfDistance[int(len(listOfDistance) * threshold)] == 0:
+        print("All the values are equals")
+    return listOfDistance[int(len(listOfDistance) * threshold)]
 
-def getTabNonSym(setCluster, listId, n_jobs=1):
+
+
+
+
+def getTabNonSym(setCluster,listId):
     w = len(listId)
-    matrixSym = np.zeros((w, w))
-
+    matrixSym = [[0 for x in range(w)] for y in range(w)]
     def matrixCalcParal(result):
         for val in result:
-            matrixSym[val["i"], val["j"]] = val["value"]
+            matrixSym[val["i"]][val["j"]] = val["value"]
 
-    totRig = len(listId) // n_jobs
+    pool = mp.Pool(mp.cpu_count())
+    totRig = int(len(listId)/mp.cpu_count())
 
-    with ProcessPoolExecutor(max_workers=n_jobs) as executor:
-        futures = []
-        for i in range(n_jobs):
-            start = i * totRig
-            end = start + totRig if i < n_jobs - 1 else len(listId)
-            futures.append(executor.submit(getValueMatrix, start, listId, end - start, setCluster))
-        
-        for future in futures:
-            matrixCalcParal(future.result())
+    for i in range(0,mp.cpu_count()):
+        start = i * int((len(listId)/mp.cpu_count()))
+        if i == mp.cpu_count() - 1:
+            totRig += int(len(listId)%mp.cpu_count())
+        pool.apply_async(getValueMatrix, args=(start,listId,totRig,setCluster),callback=matrixCalcParal)
 
-    for i in range(w):
-        maxVal = np.max(matrixSym[i])
-        matrixSym[i] = np.abs(matrixSym[i] - maxVal)
-
+    pool.close()
+    pool.join()
+    for i in range(len(matrixSym)):
+        maxVal = max(matrixSym[i])
+        for j in range(len(matrixSym)):
+            matrixSym[i][j] = abs(matrixSym[i][j] - maxVal)
     return matrixSym
+
 
 
 def getValueMatrix(start,listId,totRig,listOfClust):
     try:
         dictOfValueIJ = []
-        # Pre-calcola i risultati di numOfClusterPres per evitare chiamate ripetute
-        cluster_pres_cache = {listId[i+start]: numOfClusterPres(listOfClust, listId[i+start]) for i in range(totRig)}
-
-        for i in range(totRig):
-            id_i = listId[i + start]
-            resultCluster = cluster_pres_cache[id_i]
-            for j in range(len(listId)):
-                id_j = listId[j]
-                resultCouple = numOfRipetitionCouple(id_i, id_j, listOfClust)
+        for i in range(0,totRig):
+            for j in range(0, len(listId)):
+                resultCouple = numOfRipetitionCouple(listId[i+start], listId[j], listOfClust)
+                resultCluster = numOfClusterPres(listOfClust, listId[i+start])
                 if resultCluster[1] == resultCouple[1]:
                     value = 1
                 elif resultCouple[1] == 0:
@@ -168,12 +173,13 @@ def getValueMatrix(start,listId,totRig,listOfClust):
                 else:
                     value = resultCouple[0] / resultCluster[0]
 
-                dictSingle = {"value": value, "i": i + start, "j": j}
+                dictSingle = {"value":value,
+                              "i":i+start,"j":j}
+
                 dictOfValueIJ.append(dictSingle)
         return dictOfValueIJ
     except Exception as e:
         print("Exception in getValueMatrix:")
-        print(e)
 
 
 def getCluster(matrixsym,setCluster,numClust):
@@ -265,48 +271,39 @@ def randomFeat(ris,numberFeatUse):
     return randomFeat
 
 
-def getCommunityDetectionTrain(features, features_filtered_direct, listOfId, threshold, clusterK, chooseAlgorithm):
+def getCommunityDetectionTrain(feature, features_filtered_direct, listOfId, threshold, clusterK, chooseAlgorithm):
+
     dictOfInfo = {}
+    G = nx.Graph()
+    H = nx.path_graph(listOfId)
+    G.add_nodes_from(H)
+    distanceMinAccept = getMedianDistance(threshold, features_filtered_direct[feature])
 
-    for feature in features:
-        G = nx.Graph()
-        H = nx.path_graph(listOfId)
-        G.add_nodes_from(H)
-
-        # Convert the feature column to a numpy array for efficient operations
-        values = features_filtered_direct[feature].to_numpy()
-        # Calculate the pairwise absolute differences using broadcasting
-        diff_matrix = np.abs(values[:, np.newaxis] - values)
-        # Extract the upper triangle of the matrix, excluding the diagonal
-        listOfDistance = diff_matrix[np.triu_indices(len(values), k=1)]
-        # Find the threshold index
-        threshold_index = int(len(listOfDistance) * threshold)
-        # Use numpy's partition to find the threshold value without full sorting
-        distanceMinAccept = np.partition(listOfDistance, threshold_index)[threshold_index]
-
-        for i, j in combinations(range(len(listOfId)), 2):
-            if diff_matrix[i, j] < distanceMinAccept:
+    for i in range(0, len(listOfId)):
+        for j in range(i + 1, len(listOfId)):
+            if abs(features_filtered_direct[feature][i] - features_filtered_direct[feature][j]) < distanceMinAccept:
                 G.add_edge(i, j)
-        
-        try:
-            if list(chooseAlgorithm.keys())[0] == 'SLPA':
-                extrC = SLPA.find_communities(G, chooseAlgorithm['SLPA']['iteration'], chooseAlgorithm['SLPA']['radious'])
-                coms = []
-                for val in extrC:
-                    coms.append(frozenset(extrC[val]))
-            elif list(chooseAlgorithm.keys())[0] == 'kClique':
-                coms = list(nx.algorithms.community.k_clique_communities(G, chooseAlgorithm['SLPA']['trainClique']))
-            elif list(chooseAlgorithm.keys())[0] == 'Greedy':
-                coms = list(nx.algorithms.community.greedy_modularity_communities(G))
 
-            if len(coms) > clusterK:
-                dictOfInfo[feature] = {"distance": distanceMinAccept, "cluster": coms, "weightFeat": clusterK / len(coms)}
-            else:
-                dictOfInfo[feature] = {"distance": distanceMinAccept, "cluster": coms, "weightFeat": len(coms) / clusterK}
-            
-        except Exception as e:
-            print(e)
-            pass
+    try:
+        if list(chooseAlgorithm.keys())[0] == 'SLPA':
+            extrC = SLPA.find_communities(G, chooseAlgorithm['SLPA']['iteration'], chooseAlgorithm['SLPA']['radious'])
+            coms = []
+            for val in extrC:
+                coms.append(frozenset(extrC[val]))
+        elif list(chooseAlgorithm.keys())[0] == 'kClique':
+            coms = list(nx.algorithms.community.k_clique_communities(G, chooseAlgorithm['SLPA']['trainClique']))
+        elif list(chooseAlgorithm.keys())[0] == 'Greedy':
+            coms = list(nx.algorithms.community.greedy_modularity_communities(G))
+
+        if len(coms) > clusterK:
+            dictOfInfo[feature] = {"distance": distanceMinAccept, "cluster": coms, "weightFeat": clusterK / len(coms)}
+        else:
+            dictOfInfo[feature] = {"distance": distanceMinAccept, "cluster": coms, "weightFeat": len(coms) / clusterK}
+
+    except Exception as e:
+        print(e)
+        pass
+
     return dictOfInfo
 
 

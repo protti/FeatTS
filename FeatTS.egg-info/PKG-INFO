@@ -1,0 +1,17 @@
+Metadata-Version: 2.1
+Name: FeatTS
+Version: 0.0.3
+Summary: A new method for clustering time series by adopting the best statistical features.
+Home-page: https://github.com/protti/FeatTS
+Author: Donato Tiano
+Author-email: donatotiano@gmail.com
+License-File: LICENSE
+Requires-Dist: fastdtw>=0.3.4
+Requires-Dist: networkx>=2.5.1
+Requires-Dist: numpy>=1.21.0
+Requires-Dist: pandas>=1.3.0
+Requires-Dist: pyclustering==0.10.1.2
+Requires-Dist: scikit_learn>=0.24.2
+Requires-Dist: scipy==1.13.1
+Requires-Dist: tsfresh>=0.18.0
+Requires-Dist: aeon>=0.6.0
