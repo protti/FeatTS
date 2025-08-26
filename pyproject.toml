@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools >= 68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "featts"
+description = "A new method for clustering time series by adopting the best statistical features."
+version = "0.0.4"
+requires-python = ">= 3.7"
+dependencies = [
+    'fastdtw~=0.3.4',
+    'networkx~=2.5',
+    'numpy~=1.21',
+    'pandas~=2.0',
+    'pyclustering==0.10.1.2',
+    'scikit_learn>=0.24.2',
+    'scipy~=1.12',
+    'tsfresh~=0.20.0',
+    'aeon~=0.9.0'
+]
+authors = [
+    { name = "Donato Tiano", email = "donato.tiano@unimore.it" }
+]
+maintainers = [
+    { name = "Donato Tiano", email = "donato.tiano@unimore.it" }
+]
+readme = "README.md"
+license = { file = "LICENSE" }
+keywords = ["time series", "ts", "features", "clustering"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python"
+]
+
+[project.urls]
+Homepage = "https://github.com/protti/FeatTS"
+Documentation = "https://github.com/protti/FeatTS"
+Repository = "https://github.com/protti/FeatTS"
+Issues = "https://github.com/protti/FeatTS/issues"
+

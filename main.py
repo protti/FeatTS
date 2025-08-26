@@ -2,10 +2,11 @@ import pandas as pd
 from aeon.datasets import load_classification
 from sklearn.metrics import adjusted_mutual_info_score
 import numpy as np
-from FeatTS import FeatTS
+from featts.FeatTS import FeatTS
 import time
 import random
 from collections import defaultdict
+
 
 def select_random_percent(labels, perc):
     # Group indices by class
@@ -23,21 +24,25 @@ def select_random_percent(labels, perc):
 
     return selected_indices
 
-if __name__ == '__main__':
 
-    dataCof = load_classification("Coffee")
-    X = np.squeeze(dataCof[0], axis=1)
-    y = dataCof[1].astype(int)
-    print(X.shape)
-    # external_feat = pd.DataFrame({'LEN':y})
-    labels = select_random_percent(y,0.2)
+def main():
+    coffee_dataset = load_classification("Coffee")
+    X = np.squeeze(coffee_dataset[0], axis=1)
+    y = coffee_dataset[1].astype(int)
+    print("Input data shape:", X.shape)
     scores = []
+
     for i in range(5):
+        print("Run", i)
         start = time.time()
-        featTS = FeatTS(n_clusters=2, n_jobs=4)
-        featTS.fit(X)
-        scores.append(adjusted_mutual_info_score(featTS.labels_,y))
+        model = FeatTS(n_clusters=2, n_jobs=4)
+        out_labels = model.fit_predict(X)
+        scores.append(adjusted_mutual_info_score(out_labels, y))
         end = time.time()
-        print(end-start)
-        print(adjusted_mutual_info_score(featTS.labels_,y))
-    print(np.mean(scores))
+        print(f"Clustering computed in {end - start:.2f} seconds.")
+        print("AMI:", adjusted_mutual_info_score(out_labels, y))
+    print("Average score:", np.mean(scores))
+
+
+if __name__ == '__main__':
+    main()

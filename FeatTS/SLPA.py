@@ -28,7 +28,8 @@ def find_communities(G, T, r):
                 # Speaker Rule
                 total = float(sum(memory[speaker].values()))
 
-                labels[list(memory[speaker].keys())[np.random.multinomial(1, [freq / total for freq in memory[speaker].values()]).argmax()]] += 1
+                labels[list(memory[speaker].keys())[
+                    np.random.multinomial(1, [freq / total for freq in memory[speaker].values()]).argmax()]] += 1
 
             # Listener Rule
             acceptedLabel = max(labels, key=labels.get)

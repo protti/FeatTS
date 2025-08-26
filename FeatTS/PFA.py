@@ -6,11 +6,12 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 import numpy as np
 
+
 class PFA(object):
     def __init__(self, q=None):
         self.q = q
 
-    def fit(self, X, expl_var = 0.9):
+    def fit(self, X, expl_var=0.9):
         if not self.q:
             self.q = X.shape[1]
 
@@ -22,8 +23,7 @@ class PFA(object):
         princComp = len(pca.explained_variance_ratio_)
         A_q = pca.components_.T
 
-
-        kmeans = KMeans(n_clusters=princComp).fit(A_q)
+        kmeans = KMeans(n_clusters=princComp, n_init="auto").fit(A_q)
         clusters = kmeans.predict(A_q)
         cluster_centers = kmeans.cluster_centers_
 
@@ -38,5 +38,4 @@ class PFA(object):
         for x in self.indices_:
             listFeat.append(X.columns[x])
 
-        # print("Features Selected: " + str(listFeat))
         return listFeat

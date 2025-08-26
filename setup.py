@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 __version__ = "0.0.4"
 
 setup(
-    name="FeatTS",
+    name="featts",
     version=__version__,
     description="A new method for clustering time series by adopting the best statistical features.",
     author="Donato Tiano",
@@ -19,7 +19,7 @@ setup(
         'numpy~=1.21',  
         'pandas~=1.3',  
         'pyclustering==0.10.1.2',  
-        'scikit_learn~=0.24.2',  
+        'scikit_learn>=0.24.2',
         'scipy~=1.13.1',  
         'tsfresh~=0.18.0',  
         'aeon~=0.6.0'
